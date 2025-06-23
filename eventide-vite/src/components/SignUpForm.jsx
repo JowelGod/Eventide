@@ -14,7 +14,7 @@ export default function SignUpForm({ onSuccess }) {
 
     if (!email.includes("@")) return setError("Ingresa un correo válido.");
     if (password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres.");
-    if (!password.includes("#, $, %, ^, &, *, ), ! , ¡, ?, ¿, /, -, +, (,")) return setError("La contraseña debe contener al menos un carácter especial (#, $, %, ^, &, *, ...).");
+    if (!/[#\$%\^&\*\)\(!¡\?¿\/\-\+\(]/.test(password)) return setError("La contraseña debe contener al menos un carácter especial (#, $, %, ^, &, *, ...).");
     if (!/[A-Z]/.test(password)) return setError("La contraseña debe contener al menos una letra mayúscula.");
 
     try {

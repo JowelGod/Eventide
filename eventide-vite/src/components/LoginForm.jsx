@@ -6,6 +6,7 @@ import { Transition } from "@headlessui/react";
 export default function LoginForm({ onSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   const handleLogin = async (e) => {
@@ -14,6 +15,8 @@ export default function LoginForm({ onSuccess }) {
 
     if (!email.includes("@")) return setError("Ingresa un correo válido.");
     if (password.length < 6) return setError("La contraseña debe tener al menos 6 caracteres.");
+    if (!/[#\$%\^&\*\)\(!¡\?¿\/\-\+\(]/.test(password)) return setError("La contraseña debe contener al menos un carácter especial (#, $, %, ^, &, *, ...).");
+    if (!/[A-Z]/.test(password)) return setError("La contraseña debe contener al menos una letra mayúscula.");
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -36,16 +39,24 @@ export default function LoginForm({ onSuccess }) {
         />
       </div>
 
-      <div>
+      <div className="relative">
         <label className="block mb-1 font-medium">Contraseña</label>
         <input
-          type="password"
-          className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          type={showPassword ? "text" : "password"}
+          className="w-full p-3 pr-12 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword(prev => !prev)}
+          className="absolute top-9 right-3 text-sm text-blue-600 hover:underline"
+        >
+          {showPassword ? "Ocultar" : "Mostrar"}
+        </button>
       </div>
+
 
       <Transition
         show={!!error}
