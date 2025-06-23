@@ -1,6 +1,15 @@
 // src/services/guestsService.js
 import { db, auth } from "../firebaseConfig";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  doc,
+  query,
+  where,
+  serverTimestamp } from "firebase/firestore";
+
 
 export const addGuestToEvent = async (eventId, guestData) => {
   try {
@@ -30,4 +39,23 @@ export const addGuestToEvent = async (eventId, guestData) => {
     console.error("Error al agregar invitado:", error);
     throw error;
   }
+};
+
+export const deleteGuest = async (guestId) => {
+  const guestRef = doc(db, "guests", guestId);
+  await deleteDoc(guestRef);
+};
+
+export const fetchGuestsByEvent = async (eventId) => {
+  const q = query(collection(db, "guests"), where("eventId", "==", eventId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const updateGuest = async (guestId, guestData) => {
+  const guestRef = doc(db, "guests", guestId);
+  await updateDoc(guestRef, {
+    ...guestData,
+    updatedAt: serverTimestamp()
+  });
 };
