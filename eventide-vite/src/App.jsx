@@ -14,7 +14,7 @@ import EventForm from "./pages/EventForm";
 import EventDetails from "./pages/EventDetails";
 import GuestsManager from "./pages/GuestsManager";
 import TemplatePreview from "./pages/TemplatePreview";
-import GuestList from "./pages/GuestList";
+
 
 function App() {
   const [user, setUser] = useState(null);
