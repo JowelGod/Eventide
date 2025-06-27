@@ -14,7 +14,7 @@ import EventForm from "./pages/EventForm";
 import EventDetails from "./pages/EventDetails";
 import GuestsManager from "./pages/GuestsManager";
 import TemplatePreview from "./pages/TemplatePreview";
-
+import GuestInvitation from "./pages/GuestInvitation";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -47,6 +47,7 @@ function App() {
                   <TemplatePreview /></ProtectedRoute>} />
             <Route path="/evento/:eventId/edit" element={<ProtectedRoute>
                   <EventForm /></ProtectedRoute>} />
+            <Route path="/invitacion/:guestId" element={<GuestInvitation />} />
             </Routes>
             </div>
       </>

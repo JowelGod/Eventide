@@ -330,6 +330,24 @@ const calculateTotalTickets = () => {
                   <li key={idx}>{p.firstName} {p.lastName}</li>
                 ))}
               </ul>
+              {/* 🔗 Link personalizado de invitación */}
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={`${window.location.origin}/invitacion/${group.id}`}
+                  readOnly
+                  className="text-sm text-blue-600 underline bg-transparent border-none cursor-pointer w-full"
+                  onClick={(e) => e.target.select()}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/invitacion/${guest.id}`);
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 border border-gray-300 rounded"
+                >
+                  Copiar
+                </button>
+              </div>
             </div>
           ))}
         </div>

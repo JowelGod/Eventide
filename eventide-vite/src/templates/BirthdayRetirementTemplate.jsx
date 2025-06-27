@@ -1,8 +1,10 @@
 // src/templates/BirthdayRetirementTemplate.jsx
 import { Description } from "@headlessui/react";
 import React, { useState } from "react";
+import { updateGuest } from "../services/guestsService";
 
-export default function BirthdayRetirementTemplate({ eventData, guests = [], isPreview = false, onConfirm }) {
+
+export default function BirthdayRetirementTemplate({ eventData, guests = [], isPreview = false, onConfirm, responded = false, guestData, setResponded}) {
   const { title, date, location, hosts = [],description } = eventData;
   const { ceremony } = location || {};
 
@@ -60,59 +62,92 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
         <p className="text-sm font-sans text-green-300">Envia tu respuesta por este medio (Importante para la logística)</p>
       </div>
 
-      {!confirmMode ? (
-        <>
-          <div className="mt-4 flex flex-col items-center gap-2">
-            <div className="flex justify-center gap-4 mt-4">
-              <button
-                className="bg-green-600 hover:bg-green-700 text-sm px-4 py-1 rounded text-white transition"
-                onClick={() => alert("🥂Asombroso 🎉.Confirmación enviada✨")}
-              >
-                Confirmar
-              </button>
-              <button
-                className="bg-red-600 hover:bg-red-700 text-sm px-4 py-1 rounded text-white"
-                onClick={() => alert("💔Tú te lo pierdes👎. Rechazó enviado❌")}
-              >
-                Rechazar
-              </button>
-            </div>
-            <div className="mt-2 text-center">
-              <button
-                onClick={() => setConfirmMode(true)}
-                className="text-sm text-blue-300 underline hover:text-blue-200"
-              >
-                Confirmar invitados por separado
-              </button>
-            </div>
-          </div>
-        </>
+      {responded ? (
+        <p className="text-center text-green-300 font-bold mt-6">
+          ✅ Ya has confirmado tu asistencia. ¡Gracias!
+        </p>
       ) : (
         <>
-          <div className="mt-4 text-center">
-            <p className="text-white font-semibold mb-2">Selecciona asistentes confirmados:</p>
-            {guests.map((g, i) => (
-              <div key={i} className="flex items-center justify-center gap-2 mb-1">
-                <input type="checkbox" id={`g${i}`} className="accent-green-500" />
-                <label htmlFor={`g${i}`} className="text-white">{g}</label>
+          {!confirmMode ? (
+            <>
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <div className="flex justify-center gap-4 mt-4">
+                  <button
+                    className="bg-green-600 hover:bg-green-700 text-sm px-4 py-1 rounded text-white transition"
+                    onClick={() => alert("🥂Asombroso 🎉.Confirmación enviada✨")}
+                  >
+                    Confirmar
+                  </button>
+                  <button
+                    className="bg-red-600 hover:bg-red-700 text-sm px-4 py-1 rounded text-white"
+                    onClick={() => alert("💔Tú te lo pierdes👎. Rechazó enviado❌")}
+                  >
+                    Rechazar
+                  </button>
+                </div>
+                <div className="mt-2 text-center">
+                  <button
+                    onClick={() => setConfirmMode(true)}
+                    className="text-sm text-blue-300 underline hover:text-blue-200"
+                  >
+                    Confirmar invitados por separado
+                  </button>
+                </div>
               </div>
-            ))}
-            <button
-              onClick={() => alert("Confirmación personalizada enviada")}
-              className="mt-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded text-white"
-            >
-              Confirmar seleccionados
-            </button>
+            </>
+          ) : (
+            <>
+              <div className="mt-4 text-center">
+                <p className="text-white font-semibold mb-2">Selecciona asistentes confirmados:</p>
+                {guests.map((g, i) => (
+                  <div key={i} className="flex items-center justify-center gap-2 mb-1">
+                    <input type="checkbox" id={`g${i}`} className="accent-green-500" />
+                    <label htmlFor={`g${i}`} className="text-white">{g}</label>
+                  </div>
+                ))}
+                <button
+                  onClick={async () => {
+                    const checkboxes = document.querySelectorAll("input[type='checkbox']");
+                    let confirmedCount = 0;
 
-            <div className="mt-2">
-              <button
-                onClick={() => setConfirmMode(false)}
-                className="text-sm text-blue-300 underline hover:text-blue-200"
-              >
-                Volver
-              </button>
-            </div>
-          </div>
+                    checkboxes.forEach((checkbox) => {
+                      if (checkbox.checked) confirmedCount++;
+                    });
+
+                    const rejectedCount = guestData.ticketCount - confirmedCount;
+                    const pendingCount = 0;
+
+                    try {
+                      await updateGuest(guestData.id, {
+                        confirmedCount,
+                        rejectedCount,
+                        pendingCount,
+                        responded: true,
+                        status: "partial",
+                      });
+
+                      alert("✅ Confirmación registrada correctamente.");
+                      setResponded(true);
+                    } catch (error) {
+                      console.error("Error al guardar confirmación:", error);
+                      alert("❌ Error al guardar confirmación");
+                    }
+                  }}
+                  className="mt-4 bg-green-600 hover:bg-green-700 px-6 py-2 rounded text-white"
+                >
+                  Confirmar seleccionados
+                </button>
+                <div className="mt-2">
+                  <button
+                    onClick={() => setConfirmMode(false)}
+                    className="text-sm text-blue-300 underline hover:text-blue-200"
+                  >
+                    Volver
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
 
