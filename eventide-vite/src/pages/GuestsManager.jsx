@@ -161,13 +161,13 @@ const calculateTotalTickets = () => {
   return (
     <div className="flex flex-col md:flex-row gap-8 p-6 max-w-7xl mx-auto">
       <div className="mb-4">
-      <button
-        onClick={() => navigate(`/evento/${eventId}`)}
-        className="text-blue-600 hover:underline flex items-center"
-      >
-        ← Volver al evento
-      </button>
-    </div>
+        <button
+          onClick={() => navigate(`/evento/${eventId}`)}
+          className="text-blue-600 hover:underline flex items-center"
+        >
+          ← Volver al evento
+        </button>
+      </div>
       {/* FORMULARIO */}
       <div className="flex-1 bg-white shadow rounded p-6 border">
         <h2 className="text-xl font-semibold mb-4">

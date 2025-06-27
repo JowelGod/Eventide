@@ -7,7 +7,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute, { ProtectedRouteLogin } from "./components/ProtectedRoute";
 import Header from "./components/Header";
 import CreateEvent from "./pages/CreateEvent";
 import EventForm from "./pages/EventForm";
@@ -25,26 +25,31 @@ function App() {
   }, []);
 
   return (
-    <>
-      <Header />
-      <div className="pt-20"> {/* margen superior para que no tape el header */}
-        <Routes>
-          <Route path="/preview" element={<TemplatePreview />} />          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<SignUp />} />
-          <Route path="/dashboard" element={<ProtectedRoute>
-                <Dashboard /></ProtectedRoute>} />
-          <Route path="/create-event" element={<ProtectedRoute>
-                <CreateEvent /></ProtectedRoute>} />
-          <Route path="/create-event/:templateId" element={<ProtectedRoute>
-                <EventForm /></ProtectedRoute>} />
-          <Route path="/evento/:id" element={<ProtectedRoute>
-                <EventDetails /></ProtectedRoute>} />
-          <Route path="/evento/:id/invitados" element={<ProtectedRoute>
-                <GuestsManager /></ProtectedRoute>} />
-        </Routes>
-      </div>
-    </>
+      <>
+            <Header />
+            <div className="pt-20"> {/* margen superior para que no tape el header */}
+            <Routes>
+            <Route path="/preview" element={<TemplatePreview />} />          <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<ProtectedRouteLogin>
+                  <Login /></ProtectedRouteLogin>} />
+            <Route path="/register" element={<SignUp />} />
+            <Route path="/dashboard" element={<ProtectedRoute>
+                  <Dashboard /></ProtectedRoute>} />
+            <Route path="/create-event" element={<ProtectedRoute>
+                  <CreateEvent /></ProtectedRoute>} />
+            <Route path="/create-event/:templateId" element={<ProtectedRoute>
+                  <EventForm /></ProtectedRoute>} />
+            <Route path="/evento/:id" element={<ProtectedRoute>
+                  <EventDetails /></ProtectedRoute>} />
+            <Route path="/evento/:id/invitados" element={<ProtectedRoute>
+                  <GuestsManager /></ProtectedRoute>} />
+            <Route path="/evento/template-preview/:templateId" element={<ProtectedRoute>
+                  <TemplatePreview /></ProtectedRoute>} />
+            <Route path="/evento/:eventId/edit" element={<ProtectedRoute>
+                  <EventForm /></ProtectedRoute>} />
+            </Routes>
+            </div>
+      </>
   );
 }
 

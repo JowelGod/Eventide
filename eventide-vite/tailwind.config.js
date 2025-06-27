@@ -8,6 +8,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Poppins"', 'sans-serif'],
+        marker: ['"Permanent Marker"', 'cursive'],
       },
     },
   },

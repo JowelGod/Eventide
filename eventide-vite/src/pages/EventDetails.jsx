@@ -3,12 +3,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getEventById, deleteEvent } from "../services/eventsService";
 
+
 export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null);  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -20,6 +21,7 @@ export default function EventDetails() {
       } finally {
         setLoading(false);
       }
+
     };
     fetchData();
   }, [id]);
@@ -40,6 +42,14 @@ export default function EventDetails() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
+      <div className="mb-4">
+        <button
+          onClick={() => navigate(`/dashboard`)}
+          className="text-blue-600 hover:underline flex items-center"
+        >
+          ← Volver al dashboard
+        </button>
+      </div>
       <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
       <p className="text-gray-600 mb-4">Tipo: {event.type} | Fecha: {event.date}</p>
 
@@ -60,7 +70,7 @@ export default function EventDetails() {
       </div>
 
       <div className="flex gap-4 mt-8">
-        <button onClick={() => navigate(`/evento/${id}/editar`)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <button onClick={() => navigate(`/evento/${event.id}/edit`)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
           Editar evento
         </button>
         <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
