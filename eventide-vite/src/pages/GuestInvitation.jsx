@@ -66,7 +66,7 @@ export default function GuestInvitation() {
     <div className="min-h-screen bg-gray-100 py-10 px-4">
       <TemplateComponent
         eventData={eventData}
-        guests={guestData.guests.map(g => `${g.firstName} ${g.lastName}`)}
+        guests={guestData.guests}
         guestData={guestData}
         isPreview={false}
         responded={responded}

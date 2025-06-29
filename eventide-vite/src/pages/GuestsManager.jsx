@@ -8,6 +8,8 @@ import {
   fetchGuestsByEvent
 } from "../services/guestsService";
 import { getEventById } from "../services/eventsService";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 export default function GuestsManager() {
   const { id: eventId } = useParams();
@@ -28,26 +30,35 @@ export default function GuestsManager() {
 
   // 🔹 Cargar evento y lista de invitados
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const event = await getEventById(eventId);
-        setEventInfo(event);
-
-        const guestsFromDB = await fetchGuestsByEvent(eventId);
-        setExistingGuests(guestsFromDB);
-      } catch (err) {
-        console.error("Error al cargar datos:", err);
-      }
+    const loadEvent = async () => {
+      const event = await getEventById(eventId);
+      setEventInfo(event);
     };
-    loadData();
+
+    loadEvent();
+
+    // Suscripción en tiempo real
+    const q = query(collection(db, "guests"), where("eventId", "==", eventId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const guestsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setExistingGuests(guestsList);
+    });
+
+    return () => unsubscribe(); // Cancelar suscripción al desmontar
   }, [eventId]);
+
+  const getRejectedTickets = () =>
+    existingGuests.reduce((total, group) => total + (group.rejectedCount || 0), 0);
 
   const calculateRemainingTickets = () => {
     const used = existingGuests.reduce((total, g) => total + g.ticketCount, 0);
     const currentEdit = selectedGuestId
       ? existingGuests.find((g) => g.id === selectedGuestId)?.ticketCount || 0
       : 0;
-    return (eventInfo?.guestLimit || 0) - used + currentEdit - calculateTotalTickets();
+    return (eventInfo?.guestLimit || 0) - used + currentEdit - calculateTotalTickets() + getRejectedTickets(); ;
   };
 
   // 🔹 Validar capacidad de boletos
@@ -55,10 +66,9 @@ export default function GuestsManager() {
     existingGuests.reduce((total, g) => total + g.ticketCount, 0);
 
   const remainingTickets =
-    eventInfo?.guestLimit - getUsedTickets() +
+    eventInfo?.guestLimit - getUsedTickets() + getRejectedTickets();
     (selectedGuestId
-      ? existingGuests.find(g => g.id === selectedGuestId)?.ticketCount || 0
-      : 0);
+      ? existingGuests.find(g => g.id === selectedGuestId)?.ticketCount || 0: 0);
       
   const handleGuestChange = (index, field, value) => {
     const updatedGuests = [...guests];
@@ -91,14 +101,9 @@ const calculateTotalTickets = () => {
     setLoading(true);
     setError("");
 
-    /*if (ticketCount > remainingTickets) {
-      setError(`🎟️ Solo hay ${remainingTickets} boletos disponibles`);
-      setLoading(false);
-      return;
-    }*/
-
     if (calculateTotalTickets() > remainingTickets) {
       alert("❌ No puedes asignar más boletos de los disponibles.");
+      setLoading(false); 
       return;
     }
 
@@ -107,7 +112,9 @@ const calculateTotalTickets = () => {
         groupName,
         ticketCount: calculateTotalTickets(),
         guests,
-        contactInfo: contactInfo
+        contactInfo: {
+          email: contactInfo.email || "",
+          phone: contactInfo.phone || ""}
       };
 
       if (selectedGuestId) {
@@ -159,13 +166,13 @@ const calculateTotalTickets = () => {
 
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 p-6 max-w-7xl mx-auto">
+    <div className="flex flex-col md:flex-row gap-8 p-6 max-w-8xl mx-auto ">
       <div className="mb-4">
         <button
           onClick={() => navigate(`/evento/${eventId}`)}
           className="text-blue-600 hover:underline flex items-center"
         >
-          ← Volver al evento
+          ← Volver a tu evento
         </button>
       </div>
       {/* FORMULARIO */}
@@ -260,13 +267,13 @@ const calculateTotalTickets = () => {
                   <button
                     type="button"
                     onClick={() => handleExtraGuestsChange(index, 1)}
-                    disabled={calculateRemainingTickets() === 0}
+                    disabled={calculateRemainingTickets() <= 0}
                     className="px-2 bg-gray-200 rounded"
                   >+</button>
                 </div>
               </div>
             </div>
-))}
+          ))}
           <div className="flex justify-between items-center mt-3">
             <button
               type="button"
@@ -307,6 +314,10 @@ const calculateTotalTickets = () => {
             <div key={group.id} className="border rounded p-4 bg-white shadow-sm">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-bold">{group.groupName}</h3>
+                <div className="text-sm text-gray-500">
+                  {group.contactInfo.email && <span>📧 {group.contactInfo.email} </span>}
+                  {group.contactInfo.phone && <span>📱 {group.contactInfo.phone}</span>}
+                </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(group)}
@@ -325,28 +336,60 @@ const calculateTotalTickets = () => {
               <p className="text-sm text-gray-600">
                 🎟️ {group.ticketCount} boletos | ✅ {group.confirmedCount} | ❌ {group.rejectedCount} | ⏳ {calculatePendingCount(group)}
               </p>
-              <ul className="text-sm mt-1 list-disc pl-4 text-gray-700">
-                {group.guests.map((p, idx) => (
-                  <li key={idx}>{p.firstName} {p.lastName}</li>
-                ))}
+              <ul className="text-sm mt-2 space-y-1 pl-2">
+                {group.guests.map((g, i) => {
+                  const fullName = `${g.firstName} ${g.lastName}`;
+                  const isConfirmed = group.confirmedGuests?.includes(fullName);
+                  const isRejected = group.rejectedGuests?.includes(fullName);
+
+                  return (
+                    <li key={i}>
+                      <span
+                        className={`font-medium ${isConfirmed ? 'text-green-600' : isRejected ? 'text-red-600' : 'text-gray-800'}`}
+                      >
+                        {fullName}
+                      </span>
+
+                      {/* Invitados extra */}
+                      {Array.from({ length: g.extraGuests || 0 }).map((_, j) => {
+                        const extraName = `Invitado extra ${j + 1}`;
+                        const extraConfirmed = group.confirmedGuests?.includes(extraName);
+                        const extraRejected = group.rejectedGuests?.includes(extraName);
+
+                        return (
+                          <div key={j} className="pl-4 flex items-center gap-1">
+                            <span className="text-sm">↳</span>
+                            <span
+                              className={`text-sm ${extraConfirmed ? 'text-green-600' : extraRejected ? 'text-red-600' : 'text-gray-600'}`}
+                            >
+                              {extraName}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </li>
+                  );
+                })}
               </ul>
+
               {/* 🔗 Link personalizado de invitación */}
               <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="text"
-                  value={`${window.location.origin}/invitacion/${group.id}`}
-                  readOnly
-                  className="text-sm text-blue-600 underline bg-transparent border-none cursor-pointer w-full"
-                  onClick={(e) => e.target.select()}
-                />
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/invitacion/${guest.id}`);
-                  }}
-                  className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 border border-gray-300 rounded"
+                <a
+                  href={`${window.location.origin}/invitacion/${group.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 underline break-all"
                 >
-                  Copiar
-                </button>
+                  {`${window.location.origin}/invitacion/${group.id}`}
+                </a>
+                <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/invitacion/${group.id}`);
+                    }}
+                    className="text-xs text-gray-500 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded"
+                  >
+                    Copiar
+                  </button>
               </div>
             </div>
           ))}

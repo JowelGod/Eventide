@@ -23,6 +23,9 @@ export const addGuestToEvent = async (eventId, guestData) => {
       groupName: guestData.groupName,
       ticketCount: guestData.ticketCount,
       guests: guestData.guests,    // 🔸 Lista de invitados con nombre/apellido
+      contactInfo: {
+        email: guestData.contactInfo?.email || "",
+        phone: guestData.contactInfo?.phone || "",},
       confirmedCount: 0,           // Inicialmente nadie ha confirmado
       rejectedCount: 0,
       pendingCount: guestData.ticketCount,
