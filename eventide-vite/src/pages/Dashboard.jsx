@@ -29,6 +29,14 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="mb-4">
+        <button
+          onClick={() => navigate(`/`)}
+          className="text-blue-600 hover:underline flex items-center"
+        >
+          ← Volver al Inicio
+        </button>
+      </div>
       <h1 className="text-3xl font-bold mb-2">👋 ¡Hola, {user?.email}!</h1>
       <p className="text-gray-600 mb-6">
         Plan actual:{" "}

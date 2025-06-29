@@ -106,11 +106,8 @@ export const deleteEvent = async (eventId) => {
   }
 };
 
-/*export {
-  createEvent,
-  getEventById,
-  addCollaboratorToEvent,
-  fetchUserEvents,
-  deleteEvent  // <-- asegúrate de incluirla aquí también
-};*/
-
+// 🔸 Actualizar evento por ID
+export const updateEvent = async (id, updatedData) => {
+  const ref = doc(db, "events", id);
+  await updateDoc(ref, updatedData);
+};
