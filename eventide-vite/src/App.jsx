@@ -29,7 +29,7 @@ function App() {
             <Header />
             <div className="pt-20"> {/* margen superior para que no tape el header */}
             <Routes>
-            <Route path="/preview" element={<TemplatePreview />} />          <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<ProtectedRouteLogin>
                   <Login /></ProtectedRouteLogin>} />
             <Route path="/register" element={<SignUp />} />

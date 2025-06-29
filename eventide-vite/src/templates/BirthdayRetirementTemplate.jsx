@@ -2,6 +2,7 @@
 import { Description } from "@headlessui/react";
 import React, { useState } from "react";
 import { updateGuest } from "../services/guestsService";
+import { getEventById, updateEvent } from "../services/eventsService";
 
 
 export default function BirthdayRetirementTemplate({ eventData, guests = [], isPreview = false, onConfirm, responded = false, guestData, setResponded}) {
@@ -24,8 +25,39 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
 
   const [confirmMode, setConfirmMode] = useState(false);
 
+  const allGuestsStructured = guestData?.guests?.map((guest, index) => {
+    const firstName = guest?.firstName || "";
+    const lastName = guest?.lastName || "";
+    const name = `${firstName} ${lastName}`.trim();
+
+    const extraCount = guest?.extraGuests || 0;
+    const extras = Array.from({ length: extraCount }, (_, i) => ({
+      label: `Invitado extra ${i + 1}`,
+      parentIndex: index,
+    }));
+
+    return {
+      name,
+      index,
+      extras,
+    };
+  }) || [];
+
+  // Estado para checkboxes individuales
+  const [selectedGuests, setSelectedGuests] = useState([]);
+
+  // Manejar cambio en checkbox
+  const toggleGuest = (key) => {
+    setSelectedGuests((prev) =>
+      prev.includes(key)
+        ? prev.filter((g) => g !== key)
+        : [...prev, key]
+    );
+  };
+
+
   return (
-    <div className="relative w-full bg-[#313248] text-white p-6 rounded-md shadow-lg max-w-2xl mx-auto bg-cover bg-center" >
+    <div className="relative w-full bg-[#313248] text-white p-6 rounded-md shadow-lg max-w-2xl mx-auto bg-cover bg-center z-[1]" >
       {/* Fondo con opacidad */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-10 z-[-1]"
@@ -45,7 +77,7 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
       {/* Info del evento */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 text-sm sm:text-base">
         <div className="text-center">
-          <p className="uppercase text-gray-400">{weekday}</p>
+          <p className="uppercase text-gray-400">Fecha</p>
           <p>{formattedDate}</p>
           <p>{time}</p>
         </div>
@@ -74,13 +106,64 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
                 <div className="flex justify-center gap-4 mt-4">
                   <button
                     className="bg-green-600 hover:bg-green-700 text-sm px-4 py-1 rounded text-white transition"
-                    onClick={() => alert("🥂Asombroso 🎉.Confirmación enviada✨")}
+                    onClick={async () => {
+                      try {
+                        const totalGuests = [];
+                        guests.forEach(g => {
+                          const name = `${g.firstName} ${g.lastName}`;
+                          totalGuests.push(name);
+                          const extras = g.extraGuests || 0;
+                          for (let i = 0; i < extras; i++) {
+                            totalGuests.push(`Invitado extra ${i + 1} (${name})`);
+                          }
+                        });
+
+                        await updateGuest(guestData.id, {
+                          confirmedCount: totalGuests.length,
+                          rejectedCount: 0,
+                          pendingCount: 0,
+                          responded: true,
+                          status: "confirmed",
+                          confirmedGuests: totalGuests,
+                          rejectedGuests: [],
+                        });
+                        alert("✅ Todos confirmados correctamente.");
+                        setResponded(true);
+                      } catch (error) {
+                        console.error("Error al guardar confirmación:", error);
+                        alert("❌ Error al guardar confirmación");
+                      }
+                    }}
                   >
                     Confirmar
                   </button>
+
                   <button
                     className="bg-red-600 hover:bg-red-700 text-sm px-4 py-1 rounded text-white"
-                    onClick={() => alert("💔Tú te lo pierdes👎. Rechazó enviado❌")}
+                    onClick={async () => {
+                      try {
+                        await updateGuest(guestData.id, {
+                          confirmedCount: 0,
+                          rejectedCount: guestData.ticketCount,
+                          pendingCount: 0,
+                          responded: true,
+                          confirmedGuests: [],
+                          rejectedGuests: guests.map(g => {
+                            const fullName = `${g.firstName} ${g.lastName}`;
+                            const extras = g.extraGuests || 0;
+                            const extraLabels = Array.from({ length: extras }, (_, i) => `Invitado extra ${i + 1} (${fullName})`);
+                            return [fullName, ...extraLabels];
+                          }).flat(),
+                          status: "rejected",
+                        });
+
+                        alert("❌ Rechazo registrado correctamente.");
+                        setResponded(true);
+                      } catch (error) {
+                        console.error("Error al guardar rechazo:", error);
+                        alert("❌ Error al guardar rechazo");
+                      }
+                    }}
                   >
                     Rechazar
                   </button>
@@ -99,31 +182,91 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
             <>
               <div className="mt-4 text-center">
                 <p className="text-white font-semibold mb-2">Selecciona asistentes confirmados:</p>
-                {guests.map((g, i) => (
-                  <div key={i} className="flex items-center justify-center gap-2 mb-1">
-                    <input type="checkbox" id={`g${i}`} className="accent-green-500" />
-                    <label htmlFor={`g${i}`} className="text-white">{g}</label>
-                  </div>
-                ))}
+
+                {guests.map((guest, i) => {
+                  const name = `${guest.firstName} ${guest.lastName}`;
+                  const extras = guest.extraGuests || 0;
+
+                  return (
+                    <div key={`group-${i}`} className="ml-2 mb-1">
+                      {/* Invitado principal */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id={`g-${i}-0`}
+                          checked={selectedGuests.includes(`${i}-0`)}
+                          onChange={() => toggleGuest(`${i}-0`)}
+                          className="accent-green-500"
+                        />
+                        <label htmlFor={`g-${i}-0`} className="text-white">
+                          @ {name}
+                        </label>
+                      </div>
+
+                      {/* Invitados extra */}
+                      {[...Array(extras)].map((_, j) => (
+                        <div key={`extra-${i}-${j}`} className="flex items-center gap-2 ml-6">
+                          <input
+                            type="checkbox"
+                            id={`g-${i}-${j + 1}`}
+                            checked={selectedGuests.includes(`${i}-${j + 1}`)}
+                            onChange={() => toggleGuest(`${i}-${j + 1}`)}
+                            className="accent-purple-500"
+                          />
+                          <label htmlFor={`g-${i}-${j + 1}`} className="text-purple-300">
+                            └➤ 👤 Invitado extra {j + 1}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                {/* BOTÓN ACTUALIZADO */}
                 <button
                   onClick={async () => {
-                    const checkboxes = document.querySelectorAll("input[type='checkbox']");
+                    let confirmedGuests = [];
+                    let rejectedGuests = [];
                     let confirmedCount = 0;
+                    let rejectedCount = 0;
 
-                    checkboxes.forEach((checkbox) => {
-                      if (checkbox.checked) confirmedCount++;
+                    guests.forEach((guest, i) => {
+                      const name = `${guest.firstName} ${guest.lastName}`;
+                      const extras = guest.extraGuests || 0;
+
+                      // Principal
+                      if (selectedGuests.includes(`${i}-0`)) {
+                        confirmedGuests.push(name);
+                        confirmedCount++;
+                      } else {
+                        rejectedGuests.push(name);
+                        rejectedCount++;
+                      }
+
+                      // Extras
+                      for (let j = 0; j < extras; j++) {
+                        const label = `Invitado extra ${j + 1} (${name})`;
+                        const key = `${i}-${j + 1}`;
+
+                        if (selectedGuests.includes(key)) {
+                          confirmedGuests.push(label);
+                          confirmedCount++;
+                        } else {
+                          rejectedGuests.push(label);
+                          rejectedCount++;
+                        }
+                      }
                     });
-
-                    const rejectedCount = guestData.ticketCount - confirmedCount;
-                    const pendingCount = 0;
 
                     try {
                       await updateGuest(guestData.id, {
                         confirmedCount,
                         rejectedCount,
-                        pendingCount,
+                        pendingCount: 0,
                         responded: true,
-                        status: "partial",
+                        confirmedGuests,
+                        rejectedGuests,
+                        status: confirmedCount > 0 ? "partial" : "rejected",
                       });
 
                       alert("✅ Confirmación registrada correctamente.");
@@ -137,6 +280,7 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
                 >
                   Confirmar seleccionados
                 </button>
+
                 <div className="mt-2">
                   <button
                     onClick={() => setConfirmMode(false)}
@@ -163,12 +307,23 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
           </ul>
         </div>
         <div>
-          <p className="text-white font-bold">Boleto exclusivo para:</p>
-          <ul className="list-disc list-inside text-purple-300">
-            {guests.map((guest, index) => (
-              <li key={index}>@{guest}</li>
-            ))}
-          </ul>
+          <p className="text-white font-bold">🎟️ Boleto exclusivo para:</p>
+          {allGuestsStructured.map((guestGroup, i) => (
+            <div key={`ticket-${i}`} className="ml-2 mb-1">
+              {/* Invitado principal */}
+                <label htmlFor={`ticket-g-${i}`} className="text-white">
+                  🧍 {guestGroup.name}
+                </label>
+              {/* Invitados extra anidados */}
+              {guestGroup.extras.map((extra, j) => (
+                <div key={`ticket-extra-${i}-${j}`} className="flex items-center gap-2 ml-6">
+                  <label htmlFor={`ticket-extra-${i}-${j}`} className="text-purple-300">
+                    └➤ 👤 {extra.label}
+                  </label>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
